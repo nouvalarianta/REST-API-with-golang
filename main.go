@@ -1,6 +1,7 @@
 package main
 
 import (
+	"golang-yt/dto"
 	"golang-yt/internal/api"
 	"golang-yt/internal/config"
 	"golang-yt/internal/connection"
@@ -22,17 +23,23 @@ func main() {
 	jwtMidd := jwtMid.New(jwtMid.Config{
 		SigningKey: jwtMid.SigningKey{Key: []byte(cnf.Jwt.Key)  },
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error{ 
-			return ctx.Status(http.StatusUnauthorized).JSON("autentikasi di perlukan")
+			return ctx.Status(http.StatusUnauthorized).JSON(dto.CreateResponseError("autentikasi di perlukan"))
 		},
 	})
 
 	customerRepository := repository.NewCustomer(dbConnection)
 	userRepository := repository.NewUser(dbConnection)
+	bookRepository := repository.NewBook(dbConnection)
+	bookStockRepository := repository.NewBookStock(dbConnection)
 
 	customerService := service.NewCustomer(customerRepository)
 	userService := service.NewAuth(cnf, userRepository)
+	bookService := service.NewBook(bookRepository, bookStockRepository)
+	bookStockService := service.NewBookStock(bookRepository, bookStockRepository)
 
 	api.NewCustomer(app, customerService, jwtMidd)
+	api.NewBook(app, bookService,jwtMidd)
+	api.NewBookStock(app, bookStockService, jwtMidd)
 	api.NewAuth(app, userService)
 
 	_ = app.Listen(cnf.Server.Host + ":" + cnf.Server.Port)
