@@ -26,6 +26,6 @@ func Get() *Config {
 		Jwt: Jwt{
 			Key: os.Getenv("JWT_KEY"),
 			Exp: expInt,
-		}, 
+		},
 	}
 }

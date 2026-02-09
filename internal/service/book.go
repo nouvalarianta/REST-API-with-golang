@@ -24,7 +24,7 @@ func NewBook(bookRepository domain.BookRepository, bookStockRepository domain.Bo
 }
 
 // GetAll implements [domain.BookService].
-func (b *bookService) GetAll(ctx context.Context) (data []dto.BookData,err error) {
+func (b *bookService) GetAll(ctx context.Context) (data []dto.BookData, err error) {
 	result, err := b.bookRepository.GetAll(ctx)
 	if err != nil {
 		return nil, err
@@ -33,9 +33,9 @@ func (b *bookService) GetAll(ctx context.Context) (data []dto.BookData,err error
 	//kurang paham
 	for _, v := range result {
 		data = append(data, dto.BookData{
-			ID: v.ID,
-			Isbn: v.Isbn,
-			Title: v.Title,
+			ID:          v.ID,
+			Isbn:        v.Isbn,
+			Title:       v.Title,
 			Description: v.Description,
 		})
 	}
@@ -54,7 +54,7 @@ func (b *bookService) GetByID(ctx context.Context, id string) (dto.BookShowData,
 		return dto.BookShowData{}, errors.New("buku tidak di temukan")
 	}
 
-	stocks, err := b.bookStockRepository.GetByBookID(ctx, data.ID, )
+	stocks, err := b.bookStockRepository.GetByBookID(ctx, data.ID)
 	if err != nil {
 		return dto.BookShowData{}, err
 	}
@@ -62,29 +62,30 @@ func (b *bookService) GetByID(ctx context.Context, id string) (dto.BookShowData,
 	stockData := make([]dto.BookStockData, 0)
 	for _, v := range stocks {
 		stockData = append(stockData, dto.BookStockData{
-			Code: v.Code,
+			Code:   v.Code,
 			Status: v.Status,
 		})
 	}
-	
+
 	return dto.BookShowData{
 		BookData: dto.BookData{
-		ID: data.ID,
-		Isbn: data.Isbn,
-		Title: data.Title,
-		Description: data.Description,
-		}, 
+			ID:          data.ID,
+			Isbn:        data.Isbn,
+			Title:       data.Title,
+			Description: data.Description,
+		},
 		Stocks: stockData,
 	}, err
 }
+
 // Create implements [domain.BookService].
 func (b *bookService) Create(ctx context.Context, req dto.CreateBookRequest) error {
 	book := domain.Book{
-		ID: uuid.NewString(),
-		Title: req.Title,
+		ID:          uuid.NewString(),
+		Title:       req.Title,
 		Description: req.Description,
-		Isbn: req.Isbn,
-		CreatedAt: sql.NullTime{Valid: true, Time: time.Now()},
+		Isbn:        req.Isbn,
+		CreatedAt:   sql.NullTime{Valid: true, Time: time.Now()},
 	}
 
 	return b.bookRepository.Save(ctx, &book)
@@ -100,7 +101,7 @@ func (b *bookService) Update(ctx context.Context, req dto.UpdateBookRequest) err
 	if persisted.ID == " " {
 		return errors.New("buku tidak di temukan")
 	}
-	 
+
 	persisted.Title = req.Title
 	persisted.Isbn = req.Isbn
 	persisted.Description = req.Description

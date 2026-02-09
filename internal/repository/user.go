@@ -18,9 +18,8 @@ func NewUser(con *sql.DB) domain.UserRepository {
 	}
 }
 
-func (u *userRepository) GetByEmail(ctx context.Context, email string) (user domain.User,err error) {
+func (u *userRepository) GetByEmail(ctx context.Context, email string) (user domain.User, err error) {
 	dataset := u.db.From("users").Where(goqu.C("email").Eq(email))
-	_, err = dataset.ScanStructContext(ctx,&user)
+	_, err = dataset.ScanStructContext(ctx, &user)
 	return
 }
-

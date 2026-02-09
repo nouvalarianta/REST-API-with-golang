@@ -19,6 +19,7 @@ type Book struct {
 type BookRepository interface {
 	GetAll(ctx context.Context) ([]Book, error)
 	GetByID(ctx context.Context, id string) (Book, error)
+	GetByIDs(ctx context.Context, ids []string) ([]Book, error)
 	Save(ctx context.Context, book *Book) error
 	Update(ctx context.Context, book *Book) error
 	Delete(ctx context.Context, id string) error

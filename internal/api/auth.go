@@ -19,7 +19,7 @@ func NewAuth(app *fiber.App, authService domain.AuthService) {
 		authService: authService,
 	}
 
-	app.Post("/login", aa.Login )
+	app.Post("/login", aa.Login)
 }
 
 func (aa authApi) Login(ctx *fiber.Ctx) error {

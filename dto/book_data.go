@@ -6,9 +6,9 @@ type BookData struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 }
- 
+
 type BookStockData struct {
-	Code string `json:"code"`
+	Code   string `json:"code"`
 	Status string `json:"status"`
 }
 

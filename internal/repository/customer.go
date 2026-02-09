@@ -33,12 +33,19 @@ func (cr customerRepository) GetByID(ctx context.Context, id string) (result dom
 	return
 }
 
+func (cr customerRepository) GetByIDs(ctx context.Context, ids []string) (result []domain.Customer, err error) {
+	dataset := cr.db.From("customers").
+		Where(goqu.C("deleted_at").IsNull(), goqu.C("id").Eq(ids))
+	err = dataset.ScanStructsContext(ctx, &result)
+	return
+}
+
 func (cr customerRepository) Save(ctx context.Context, c *domain.Customer) error {
 	record := goqu.Record{
 		"code": c.Code,
 		"name": c.Name,
 	}
-	
+
 	executor := cr.db.Insert("customers").Rows(record).Executor()
 	// executor := cr.db.Insert("customers").Rows(c).Executor()
 	_, err := executor.ExecContext(ctx)
@@ -54,9 +61,9 @@ func (cr customerRepository) Update(ctx context.Context, c *domain.Customer) err
 func (cr customerRepository) Delete(ctx context.Context, id string) error {
 	executor := cr.db.Update("customers").
 		Where(goqu.C("id").Eq(id)).
-		Set(goqu.Record{"deleted_at" : sql.NullTime{Valid: true, Time: time.Now()}}).
+		Set(goqu.Record{"deleted_at": sql.NullTime{Valid: true, Time: time.Now()}}).
 		Executor()
-	
+
 	_, err := executor.ExecContext(ctx)
 	return err
 }

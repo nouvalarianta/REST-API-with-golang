@@ -3,7 +3,7 @@ package config
 type Config struct {
 	Server      Server
 	DatabaseURL string
-	Jwt Jwt
+	Jwt         Jwt
 }
 
 type Server struct {
@@ -11,7 +11,7 @@ type Server struct {
 	Port string
 }
 
-type Jwt struct{
+type Jwt struct {
 	Key string
 	Exp int
 }

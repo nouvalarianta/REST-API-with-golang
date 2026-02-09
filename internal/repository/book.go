@@ -13,7 +13,6 @@ type bookRepository struct {
 	db *goqu.Database
 }
 
-
 func NewBook(con *sql.DB) domain.BookRepository {
 	return &bookRepository{
 		db: goqu.New("postgres", con),
@@ -21,7 +20,7 @@ func NewBook(con *sql.DB) domain.BookRepository {
 }
 
 // GetAll implements [domain.BookRepository].
-func (b *bookRepository) GetAll(ctx context.Context) (books []domain.Book,err error) {
+func (b *bookRepository) GetAll(ctx context.Context) (books []domain.Book, err error) {
 	dataset := b.db.From("books").Where(goqu.C("deleted_at").IsNull())
 	// err = b.db.From("books").Where(goqu.C("deleted_at").IsNull()).ScanStructsContext(ctx, books)
 	err = dataset.ScanStructsContext(ctx, &books)
@@ -29,14 +28,24 @@ func (b *bookRepository) GetAll(ctx context.Context) (books []domain.Book,err er
 }
 
 // GetByID implements [domain.BookRepository].
-func (b *bookRepository) GetByID(ctx context.Context, id string) (book domain.Book,err error) {
+func (b *bookRepository) GetByID(ctx context.Context, id string) (book domain.Book, err error) {
 	dataset := b.db.From("books").
 		Where(
 			goqu.C("id").Eq(id),
 			goqu.C("deleted_at").IsNull(),
 		)
 	_, err = dataset.ScanStructContext(ctx, &book)
-	return 
+	return
+}
+
+func (b *bookRepository) GetByIDs(ctx context.Context, ids []string) (book []domain.Book, err error) {
+	dataset := b.db.From("books").
+		Where(
+			goqu.C("id").Eq(ids),
+			goqu.C("deleted_at").IsNull(),
+		)
+	err = dataset.ScanStructsContext(ctx, &book)
+	return
 }
 
 // Save implements [domain.BookRepository].
@@ -64,4 +73,4 @@ func (b *bookRepository) Delete(ctx context.Context, id string) error {
 		Executor()
 	_, err := executor.ExecContext(ctx)
 	return err
-} 
+}

@@ -17,7 +17,6 @@ type authService struct {
 	userRepository domain.UserRepository
 }
 
-
 func NewAuth(cnf *config.Config, userRepository domain.UserRepository) domain.AuthService {
 	return authService{
 		conf:           cnf,
@@ -41,11 +40,11 @@ func (a authService) Login(ctx context.Context, req dto.AuthRequest) (dto.AuthRe
 	}
 
 	claims := jwt.MapClaims{
-		"id" : user.ID,
-		"exp" : time.Now().Add(time.Duration(a .conf.Jwt.Exp) * time.Minute).Unix(),
+		"id":  user.ID,
+		"exp": time.Now().Add(time.Duration(a.conf.Jwt.Exp) * time.Minute).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, err :=  token.SignedString([]byte(a.conf.Jwt.Key))
+	tokenStr, err := token.SignedString([]byte(a.conf.Jwt.Key))
 	if err != nil {
 		return dto.AuthResponse{}, errors.New("autentikasi gagal")
 	}

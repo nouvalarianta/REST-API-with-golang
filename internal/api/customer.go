@@ -119,5 +119,5 @@ func (ca customerApi) Show(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusInternalServerError).JSON(dto.CreateResponseError(err.Error()))
 	}
 
-	return ctx.Status(http.StatusOK).JSON(dto.CreateResponseSuccess(data ))
+	return ctx.Status(http.StatusOK).JSON(dto.CreateResponseSuccess(data))
 }
