@@ -17,6 +17,7 @@ type Journal struct {
 	StockCode  string       `db:"stock_code"`
 	CustomerId string       `db:"customer_id"`
 	Status     string       `db:"status"`
+	DueAt      sql.NullTime `db:"due_at" `
 	BorrowedAt sql.NullTime `db:"borrowed_at"`
 	ReturnedAt sql.NullTime `db:"returned_at"`
 }

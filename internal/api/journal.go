@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type journalApi struct {
@@ -20,9 +21,11 @@ func NewJournal(app *fiber.App, journalService domain.JournalService, authMid fi
 		journalService: journalService,
 	}
 
-	app.Get("/journals", authMid, ja.Index)
-	app.Post("/journals", authMid, ja.Create)
-	app.Put("/journals/:id", authMid, ja.Update)
+	journal := app.Group("/journals", authMid)
+
+	journal.Get("/", ja.Index)
+	journal.Post("/", ja.Create)
+	journal.Put("/:id", ja.Update)
 }
 
 func (ja journalApi) Index(ctx *fiber.Ctx) error {
@@ -71,8 +74,13 @@ func (ja journalApi) Update(ctx *fiber.Ctx) error {
 	defer cancel()
 
 	id := ctx.Params("id")
+	//
+	claim := ctx.Locals("user").(*jwt.Token).Claims.(jwt.MapClaims)
 
-	err := ja.journalService.Return(c, dto.ReturnJournalRequest{JournaID: id})
+	err := ja.journalService.Return(c, dto.ReturnJournalRequest{
+		JournaID: id,
+		UserId: claim["id"].(string),
+	})
 
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(dto.CreateResponseError(err.Error()))

@@ -21,8 +21,10 @@ func NewBookStock(app *fiber.App, bookStockService domain.BookStockService, autM
 		bookStockService: bookStockService,
 	}
 
-	app.Post("/book-stocks", autMidd, bsa.Create)
-	app.Delete("/book-stocks", autMidd, bsa.Delete)
+	bookStock := app.Group("/book-stocks", autMidd)
+
+	bookStock.Post("/", bsa.Create)
+	bookStock.Delete("/", bsa.Delete)
 }
 
 func (ba bookStockApi) Create(ctx *fiber.Ctx) error {
