@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
-	"errors"
+	// "errors"
 	"golang-yt/domain"
 	"golang-yt/dto"
 	"time"
@@ -46,14 +46,20 @@ func (j *journalService) Index(ctx context.Context, se domain.JournalSearch) ([]
 
 	customers := make(map[string]domain.Customer)
 	if len(customerId) > 0 {
-		customersDb, _ := j.customerRepository.GetByIDs(ctx, customerId)
+		customersDb, err := j.customerRepository.GetByIDs(ctx, customerId)
+		if err != nil {
+			return nil, err
+		}
 		for _, v := range customersDb {
 			customers[v.ID] = v
 		}
 	}
 	books := make(map[string]domain.Book)
 	if len(bookId) > 0 {
-		bookDb, _ := j.bookRepository.GetByIDs(ctx, bookId)
+		bookDb, err := j.bookRepository.GetByIDs(ctx, bookId)
+		if err != nil {
+			return nil, err
+		}
 		for _, v := range bookDb {
 			books[v.ID] = v
 		}
@@ -85,6 +91,7 @@ func (j *journalService) Index(ctx context.Context, se domain.JournalSearch) ([]
 			BookStock:  v.StockCode,
 			Book:       book,
 			Customer:   customer,
+			Status:     v.Status,
 			BorrowedAt: v.BorrowedAt.Time,
 			ReturnedAt: v.ReturnedAt.Time,
 		})
@@ -100,7 +107,7 @@ func (j *journalService) Create(ctx context.Context, req dto.CreateJournalReques
 	}
 
 	if book.ID == "" {
-		return errors.New("buku tidak di temukan")
+		return domain.BookNotFound
 	}
 
 	stock, err := j.bookStockRepository.GetByBookAndCode(ctx, book.ID, req.BookStock)
@@ -109,11 +116,11 @@ func (j *journalService) Create(ctx context.Context, req dto.CreateJournalReques
 	}
 
 	if stock.Code == "" {
-		return errors.New("buku tidak di temukan")
+		return domain.BookStockNotFound
 	}
 
 	if stock.Status != domain.BookStockStatusAvailable {
-		return errors.New("buku sudah di pinjam")
+		return domain.BookAlreadyBorrowed
 	}
 
 	journal := domain.Journal{
@@ -121,7 +128,7 @@ func (j *journalService) Create(ctx context.Context, req dto.CreateJournalReques
 		BookId:     req.BookId,
 		StockCode:  req.BookStock,
 		CustomerId: req.CustomerId,
-		Status:     domain.JouralStatusInProgress,
+		Status:     domain.JournalStatusInProgress,
 		DueAt:      sql.NullTime{Valid: true, Time: time.Now().Add(7 * 24 * time.Hour)},
 		BorrowedAt: sql.NullTime{Valid: true, Time: time.Now()},
 	}
@@ -140,13 +147,17 @@ func (j *journalService) Create(ctx context.Context, req dto.CreateJournalReques
 
 // Return implements [domain.JournalService].
 func (j *journalService) Return(ctx context.Context, req dto.ReturnJournalRequest) error {
-	journal, err := j.journalRepository.FindById(ctx, req.JournaID)
+	journal, err := j.journalRepository.FindById(ctx, req.JournalID)
 	if err != nil {
 		return err
 	}
 
 	if journal.Id == "" {
-		return domain.JounalNotFound
+		return domain.JournalNotFound
+	}
+
+	if journal.Status == domain.JournalStatusCompleted {
+		return domain.JournalAlreadyCompleted
 	}
 
 	stock, err := j.bookStockRepository.GetByBookAndCode(ctx, journal.BookId, journal.StockCode)
@@ -171,21 +182,25 @@ func (j *journalService) Return(ctx context.Context, req dto.ReturnJournalReques
 		return err
 	}
 
-	hoursLate := time.Since(journal.DueAt.Time).Hours()
-	if hoursLate > 24 {
+	if journal.DueAt.Valid {
+		hoursLate := time.Since(journal.DueAt.Time).Hours()
+		if hoursLate > 24 {
 
-		daysLate := int(hoursLate / 24)
+			daysLate := int(hoursLate / 24)
 
-		charge := domain.Charge{
-			Id:           uuid.NewString(),
-			JournalId:    journal.Id,
-			DaysLate:     daysLate,
-			DailyLateFee: 5000,
-			Total:        5000 * daysLate,
-			UserId:       req.UserId,
-			CreatedAt:    sql.NullTime{Valid: true, Time: time.Now()},
+			charge := domain.Charge{
+				Id:           uuid.NewString(),
+				JournalId:    journal.Id,
+				DaysLate:     daysLate,
+				DailyLateFee: 5000,
+				Total:        5000 * daysLate,
+				UserId:       req.UserId,
+				CreatedAt:    sql.NullTime{Valid: true, Time: time.Now()},
+			}
+			if errCharge := j.chargeRepository.Save(ctx, &charge); errCharge != nil {
+				return errCharge
+			}
 		}
-		err = j.chargeRepository.Save(ctx, &charge)
 	}
-	return err
+	return nil
 }

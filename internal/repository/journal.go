@@ -24,6 +24,9 @@ func (j *journalRepository) Find(ctx context.Context, se domain.JournalSearch) (
 	if se.CustomerId != "" {
 		dataset = dataset.Where(goqu.C("customer_id").Eq(se.CustomerId))
 	}
+	if se.Status != "" {
+		dataset = dataset.Where(goqu.C("status").Eq(se.Status))
+	}
 
 	err = dataset.ScanStructsContext(ctx, &result)
 	return

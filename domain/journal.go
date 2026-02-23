@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	JouralStatusInProgress = "IN_PROGRESS"
+	JournalStatusInProgress = "IN_PROGRESS"
 	JournalStatusCompleted = "COMPLETED"
 )
 

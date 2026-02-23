@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"golang-yt/domain"
 	"golang-yt/dto"
 	"golang-yt/internal/util"
@@ -52,7 +53,8 @@ func (ja journalApi) Create(ctx *fiber.Ctx) error {
 
 	var req dto.CreateJournalRequest
 	if err := ctx.BodyParser(&req); err != nil {
-		return ctx.SendStatus(http.StatusUnprocessableEntity)
+		return ctx.Status(http.StatusUnprocessableEntity).
+			JSON(dto.CreateResponseError("invalid request body"))
 	}
 
 	fails := util.Validate(req)
@@ -60,9 +62,13 @@ func (ja journalApi) Create(ctx *fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).JSON(dto.CreateResponseErrorData("validate error", fails))
 	}
 
-	err := ja.journalService.Create(c, req)
-
-	if err != nil {
+	if err := ja.journalService.Create(c, req); err != nil {
+		if errors.Is(err, domain.BookNotFound) || errors.Is(err, domain.BookStockNotFound) {
+			return ctx.Status(http.StatusNotFound).JSON(dto.CreateResponseError(err.Error()))
+		}
+		if errors.Is(err, domain.BookAlreadyBorrowed) {
+			return ctx.Status(http.StatusBadRequest).JSON(dto.CreateResponseError(err.Error()))
+		}
 		return ctx.Status(http.StatusInternalServerError).JSON(dto.CreateResponseError(err.Error()))
 	}
 
@@ -74,17 +80,39 @@ func (ja journalApi) Update(ctx *fiber.Ctx) error {
 	defer cancel()
 
 	id := ctx.Params("id")
-	//
-	claim := ctx.Locals("user").(*jwt.Token).Claims.(jwt.MapClaims)
 
-	err := ja.journalService.Return(c, dto.ReturnJournalRequest{
-		JournaID: id,
-		UserId: claim["id"].(string),
-	})
+	userToken, ok := ctx.Locals("user").(*jwt.Token)
+	if !ok || userToken == nil {
+		return ctx.Status(http.StatusUnauthorized).JSON(dto.CreateResponseError("autentikasi diperlukan"))
+	}
 
-	if err != nil {
+	claims, ok := userToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return ctx.Status(http.StatusUnauthorized).JSON(dto.CreateResponseError("autentikasi diperlukan"))
+	}
+
+	userIDVal, ok := claims["id"]
+	if !ok {
+		return ctx.Status(http.StatusUnauthorized).JSON(dto.CreateResponseError("autentikasi diperlukan"))
+	}
+
+	userID, ok := userIDVal.(string)
+	if !ok {
+		return ctx.Status(http.StatusUnauthorized).JSON(dto.CreateResponseError("autentikasi diperlukan"))
+	}
+
+	if err := ja.journalService.Return(c, dto.ReturnJournalRequest{
+		JournalID: id,
+		UserId:    userID,
+	}); err != nil {
+		if errors.Is(err, domain.JournalNotFound) {
+			return ctx.Status(http.StatusNotFound).JSON(dto.CreateResponseError(err.Error()))
+		}
+		if errors.Is(err, domain.JournalAlreadyCompleted) {
+			return ctx.Status(http.StatusBadRequest).JSON(dto.CreateResponseError(err.Error()))
+		}
 		return ctx.Status(http.StatusInternalServerError).JSON(dto.CreateResponseError(err.Error()))
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(dto.CreateResponseSuccess(""))
+	return ctx.Status(http.StatusOK).JSON(dto.CreateResponseSuccess(""))
 }
